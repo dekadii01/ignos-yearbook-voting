@@ -193,7 +193,7 @@ export function CategorySelection() {
           </div>
         </GlassCard>
 
-        <div className="flex items-center gap-4 justify-end mt-6">
+        <div className="flex items-center gap-4 justify-end mt-6 mb-6">
           <GlassButton variant="secondary" onClick={() => navigate("/summary")}>
             Hasil Voting Sementara
           </GlassButton>
@@ -201,6 +201,10 @@ export function CategorySelection() {
             Kembali ke Beranda
           </GlassButton>
         </div>
+
+        <p className="text-center text-sm text-gray-500">
+          © 2026 Ignos Studio. All rights reserved.
+        </p>
       </div>
     </div>
   );

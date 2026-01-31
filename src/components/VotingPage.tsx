@@ -175,64 +175,71 @@ export function VotingPage() {
 
         {/* ================= CANDIDATES ================= */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {candidates.map((candidate) => (
-            <button
-              key={candidate.id}
-              onClick={() => setSelectedCandidate(candidate.id)}
-              className="group relative text-left"
-            >
-              <GlassCard
-                hover
-                className={`p-6 h-full transition-all duration-300 group-hover:scale-105 ${
-                  selectedCandidate === candidate.id
-                    ? "ring-2 ring-gray-800 shadow-2xl"
-                    : ""
-                }`}
-              >
-                <div className="space-y-4">
-                  {/* Photo */}
-                  <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-gray-200/60 to-gray-300/60 backdrop-blur-sm">
-                    <ImageWithFallback
-                      src={candidate.photo}
-                      alt={candidate.name}
-                      className="w-full h-full object-cover"
-                    />
+          {candidates.map((candidate) => {
+            const imageSrc = new URL(
+              `../img/kandidat/${candidate.photo}.jpg`,
+              import.meta.url,
+            ).href;
 
-                    {/* Selected Overlay */}
-                    {selectedCandidate === candidate.id && (
-                      <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-[2px] flex items-center justify-center">
-                        <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl">
-                          <div className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center">
-                            <svg
-                              className="w-7 h-7 text-white"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={3}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
+            return (
+              <button
+                key={candidate.id}
+                onClick={() => setSelectedCandidate(candidate.id)}
+                className="group relative text-left"
+              >
+                <GlassCard
+                  hover
+                  className={`p-6 h-full transition-all duration-300 group-hover:scale-105 ${
+                    selectedCandidate === candidate.id
+                      ? "ring-2 ring-gray-800 shadow-2xl"
+                      : ""
+                  }`}
+                >
+                  <div className="space-y-4">
+                    {/* Photo */}
+                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-gray-200/60 to-gray-300/60 backdrop-blur-sm">
+                      <ImageWithFallback
+                        src={imageSrc}
+                        alt={candidate.name}
+                        className="w-full h-full object-cover"
+                      />
+
+                      {/* Selected Overlay */}
+                      {selectedCandidate === candidate.id && (
+                        <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-[2px] flex items-center justify-center">
+                          <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl">
+                            <div className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center">
+                              <svg
+                                className="w-7 h-7 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={3}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
 
-                  {/* Info */}
-                  <div className="text-center">
-                    <h3 className="text-gray-900 mb-1">{candidate.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      Class {candidate.class}
-                    </p>
+                    {/* Info */}
+                    <div className="text-center">
+                      <h3 className="text-gray-900 mb-1">{candidate.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        Class {candidate.class}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </GlassCard>
-            </button>
-          ))}
+                </GlassCard>
+              </button>
+            );
+          })}
         </div>
 
         {/* ================= FOOTER ================= */}
@@ -267,6 +274,9 @@ export function VotingPage() {
           </div>
         </GlassCard>
       </div>
+      <p className="text-center text-sm text-gray-500 mt-6">
+        © 2026 Ignos Studio. All rights reserved.
+      </p>
     </div>
   );
 }

@@ -6,6 +6,8 @@ import {
   TrendingUp,
   LogOut,
   Crown,
+  CalendarClock,
+  Save,
 } from "lucide-react";
 
 import { supabase } from "../lib/supabase";
@@ -44,9 +46,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [votes, setVotes] = useState<Vote[]>([]);
   const [totalStudents, setTotalStudents] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+
+  /* NEW STATE (date setting) */
+  const [settingId, setSettingId] = useState<string | null>(null);
+  const [summaryDate, setSummaryDate] = useState("");
+  const [saving, setSaving] = useState(false);
 
   /* ================= FETCH ALL DATA ================= */
+
   useEffect(() => {
     const loadData = async () => {
       const { data: cat } = await supabase.from("categories").select("*");
@@ -58,20 +66,46 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         .select("*", { count: "exact", head: true })
         .eq("role", "student");
 
+      const { data: setting } = await supabase
+        .from("settings")
+        .select("*")
+        .single();
+
+      if (setting) {
+        setSettingId(setting.id);
+        setSummaryDate(
+          new Date(setting.summary_open_at).toISOString().slice(0, 16),
+        );
+      }
+
       setCategories(cat || []);
       setCandidates(cand || []);
       setVotes(vote || []);
       setTotalStudents(count || 0);
 
-      if (cat && cat.length > 0) {
-        setSelectedCategory(cat[0].id);
-      }
+      if (cat?.length) setSelectedCategory(cat[0].id);
     };
 
     loadData();
   }, []);
 
-  /* ================= STATISTICS ================= */
+  /* ================= SAVE DATE ================= */
+
+  const handleSaveDate = async () => {
+    if (!summaryDate || !settingId) return;
+
+    setSaving(true);
+
+    await supabase
+      .from("settings")
+      .update({ summary_open_at: new Date(summaryDate).toISOString() })
+      .eq("id", settingId);
+
+    setSaving(false);
+    alert("Tanggal berhasil disimpan ✅");
+  };
+
+  /* ================= STATS ================= */
 
   const totalVotes = votes.length;
 
@@ -79,7 +113,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     (totalVotes / (totalStudents * categories.length || 1)) * 100,
   );
 
-  /* ================= CURRENT CATEGORY DATA ================= */
+  /* ================= CURRENT CATEGORY ================= */
 
   const currentCandidates = candidates.filter(
     (c) => c.category_id === selectedCategory,
@@ -152,6 +186,28 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           </GlassCard>
         </div>
 
+        {/* ================= DATE SETTER ================= */}
+        <GlassCard className="p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <CalendarClock className="w-5 h-5" />
+            <h2 className="text-lg text-gray-900">Waktu Buka Summary</h2>
+          </div>
+
+          <div className="flex gap-3">
+            <input
+              type="datetime-local"
+              value={summaryDate}
+              onChange={(e) => setSummaryDate(e.target.value)}
+              className="px-4 py-2 rounded-xl bg-white/40 border border-white/60 backdrop-blur"
+            />
+
+            <GlassButton onClick={handleSaveDate} disabled={saving}>
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? "Saving..." : "Save"}
+            </GlassButton>
+          </div>
+        </GlassCard>
+
         {/* ================= CATEGORY ================= */}
         <GlassCard className="p-6 mb-6">
           <h2 className="text-lg text-gray-900 mb-4">Pilih Kategori</h2>
@@ -173,7 +229,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           </div>
         </GlassCard>
 
-        {/* ================= RESULTS ================= */}
+        {/* ================= RESULTS (style lama balik) ================= */}
         <GlassCard className="p-6 space-y-4 mb-6">
           {sortedCandidates.map((candidate, index) => {
             const percentage =
@@ -193,7 +249,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     {isWinner && <Crown className="w-6 h-6 text-yellow-600" />}
-
                     <div>
                       <p className="text-gray-900 font-medium">
                         {candidate.name}
@@ -210,7 +265,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   </div>
                 </div>
 
-                {/* Progress */}
                 <div className="w-full h-2 bg-gray-200/60 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-500 ${

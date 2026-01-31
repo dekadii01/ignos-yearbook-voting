@@ -10,10 +10,8 @@ import {
   Crown,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { GlassCard } from "./GlassCard";
-import { GlassButton } from "./GlassButton";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 /* ================= TYPES ================= */
@@ -35,7 +33,7 @@ interface Candidate {
 
 /* ================= ICON MAP ================= */
 
-const iconMap: { [key: string]: any } = {
+const iconMap: Record<string, any> = {
   Sparkles,
   Heart,
   Zap,
@@ -46,16 +44,93 @@ const iconMap: { [key: string]: any } = {
   Smile,
 };
 
+/* ================= HELPER ================= */
+
+const formatTime = (ms: number) => {
+  const total = Math.floor(ms / 1000);
+  return {
+    days: Math.floor(total / 86400),
+    hours: Math.floor((total % 86400) / 3600),
+    minutes: Math.floor((total % 3600) / 60),
+    seconds: total % 60,
+  };
+};
+
 /* ================= COMPONENT ================= */
 
 export function SummaryPage() {
-  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [winners, setWinners] = useState<Record<string, Candidate>>({});
+  const [candidatesByCategory, setCandidatesByCategory] = useState<
+    Record<string, Candidate[]>
+  >({});
+
+  const [openAt, setOpenAt] = useState<number | null>(null);
+  const [serverNow, setServerNow] = useState<number | null>(null);
+
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  /* ================= SERVER TIME ================= */
+
+  const getServerNow = async () => {
+    const { data } = await supabase.rpc("now");
+    return new Date(data).getTime();
+  };
+
+  /* ================= INIT ================= */
+
   useEffect(() => {
-    const loadSummary = async () => {
+    const init = async () => {
+      const { data: setting } = await supabase
+        .from("settings")
+        .select("summary_open_at")
+        .single();
+
+      if (!setting) return;
+
+      setOpenAt(new Date(setting.summary_open_at).getTime());
+
+      const now = await getServerNow();
+      setServerNow(now);
+    };
+
+    init();
+  }, []);
+
+  /* ================= COUNTDOWN ================= */
+
+  useEffect(() => {
+    if (!openAt || !serverNow) return;
+
+    const interval = setInterval(() => {
+      setServerNow((prev) => {
+        if (!prev) return prev;
+
+        const next = prev + 1000;
+        const diff = openAt - next;
+
+        if (diff <= 0) {
+          setIsOpen(true);
+          setTimeLeft(0);
+          clearInterval(interval);
+        } else {
+          setTimeLeft(diff);
+        }
+
+        return next;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [openAt, serverNow]);
+
+  /* ================= LOAD SUMMARY ================= */
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const load = async () => {
       setLoading(true);
 
       const { data: categoriesData } = await supabase
@@ -64,7 +139,7 @@ export function SummaryPage() {
 
       const { data: votesData } = await supabase
         .from("votes")
-        .select("candidate_id, category_id");
+        .select("candidate_id");
 
       const { data: candidatesData } = await supabase
         .from("candidates")
@@ -77,105 +152,195 @@ export function SummaryPage() {
         voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
       });
 
-      const winnerMap: Record<string, Candidate> = {};
+      const grouped: Record<string, Candidate[]> = {};
 
-      categoriesData.forEach((category) => {
-        const categoryCandidates = candidatesData
-          .filter((c) => c.category_id === category.id)
+      categoriesData.forEach((cat) => {
+        grouped[cat.id] = candidatesData
+          .filter((c) => c.category_id === cat.id)
           .map((c) => ({
             ...c,
             votes: voteCount[c.id] || 0,
           }))
           .sort((a, b) => b.votes - a.votes);
-
-        if (categoryCandidates.length > 0) {
-          winnerMap[category.id] = categoryCandidates[0];
-        }
       });
 
       setCategories(categoriesData);
-      setWinners(winnerMap);
+      setCandidatesByCategory(grouped);
       setLoading(false);
     };
 
-    loadSummary();
-  }, []);
+    load();
+  }, [isOpen]);
 
-  if (loading) {
+  /* ================= COUNTDOWN UI ================= */
+
+  if (!isOpen) {
+    const { days, hours, minutes, seconds } = formatTime(timeLeft);
+
+    const timeBlocks = [
+      { label: "Days", value: days },
+      { label: "Hours", value: hours },
+      { label: "Minutes", value: minutes },
+      { label: "Seconds", value: seconds },
+    ];
+
     return (
-      <p className="text-center mt-20 text-gray-500">Loading summary...</p>
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <GlassCard className="p-12 text-center space-y-8 max-w-7xl mx-auto">
+          {/* ICON */}
+          <div
+            className="inline-flex items-center justify-center w-20 h-20 rounded-full 
+                        bg-gradient-to-br from-yellow-400/60 to-yellow-600/60 
+                        border border-yellow-300/50 backdrop-blur-xl shadow-2xl"
+          >
+            <Trophy className="w-10 h-10" />
+          </div>
+
+          {/* TITLE */}
+          <div>
+            <h2 className="text-2xl text-gray-900 mb-2">Results Coming Soon</h2>
+            <p className="text-gray-600 text-sm">
+              Voting results will be revealed in
+            </p>
+          </div>
+
+          {/* COUNTDOWN */}
+          <div className="grid grid-cols-4 gap-4">
+            {timeBlocks.map((t, i) => (
+              <div
+                key={i}
+                className="p-4 rounded-2xl bg-white/40 backdrop-blur-xl border border-white/60 shadow-md"
+              >
+                <p className="text-3xl font-semibold text-gray-900">
+                  {String(t.value).padStart(2, "0")}
+                </p>
+                <p className="text-xs text-gray-600 mt-1 uppercase tracking-wide">
+                  {t.label}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* FOOTER NOTE */}
+          <div className="pt-4">
+            <p className="text-xs text-gray-500">
+              🎉 Stay tuned! The winners will be announced shortly.
+            </p>
+          </div>
+        </GlassCard>
+      </div>
     );
   }
 
+  if (loading) return <p className="text-center mt-20">Loading...</p>;
+
+  /* ================= RESULT ================= */
+
   return (
-    <div className="min-h-screen p-6 py-12">
-      <div className="w-full max-w-6xl mx-auto">
-        {/* ================= HEADER ================= */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300/60 to-yellow-500/60 backdrop-blur-xl border border-yellow-400/50 shadow-2xl mb-4">
-            <Trophy className="w-10 h-10 text-yellow-800" />
-          </div>
-
-          <h1 className="text-4xl text-gray-900 mb-2">Final Results</h1>
-          <p className="text-gray-600">
-            Here are the winners of each category 🎉
-          </p>
-        </div>
-
-        {/* ================= GRID ================= */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {categories.map((category) => {
-            const winner = winners[category.id];
-            if (!winner) return null;
-
-            const Icon = iconMap[category.icon] || Sparkles;
-
-            return (
-              <GlassCard
-                key={category.id}
-                className="p-6 text-center space-y-4 hover:scale-105 transition-all duration-300"
-              >
-                {/* Category Icon */}
-                <div className="flex justify-center">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-white/70 to-white/40 backdrop-blur-xl border border-white/50 flex items-center justify-center">
-                    <Icon className="w-7 h-7 text-gray-800" />
-                  </div>
-                </div>
-
-                {/* Category Name */}
-                <h3 className="text-lg text-gray-900">{category.name}</h3>
-
-                {/* Winner Photo */}
-                <div className="relative w-28 h-28 mx-auto rounded-full overflow-hidden shadow-xl">
-                  <ImageWithFallback
-                    src={winner.photo}
-                    alt={winner.name}
-                    className="w-full h-full object-cover"
-                  />
-
-                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center shadow-lg">
-                    <Crown className="w-4 h-4 text-yellow-900" />
-                  </div>
-                </div>
-
-                {/* Winner Info */}
-                <div>
-                  <h4 className="text-gray-900">{winner.name}</h4>
-                  <p className="text-sm text-gray-600">Class {winner.class}</p>
-                </div>
-
-                {/* Votes */}
-                <p className="text-sm text-gray-700">🗳️ {winner.votes} votes</p>
-              </GlassCard>
-            );
-          })}
-        </div>
-
-        {/* ================= ACTION ================= */}
-        <div className="flex justify-center">
-          <GlassButton onClick={() => navigate("/")}>Back to Home</GlassButton>
-        </div>
+    <div className="min-h-screen max-w-7xl mx-auto space-y-10 p-6 py-10">
+      {/* ================= HERO HEADER ================= */}
+      <div className="text-center space-y-2 mb-6">
+        <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">
+          Voting Results
+        </h1>
+        <p className="text-gray-600">Yearbook Voting SMPN 2 Abiansemal</p>
       </div>
+
+      {/* ================= CATEGORIES ================= */}
+      {categories.map((category) => {
+        const list = candidatesByCategory[category.id];
+        if (!list || list.length === 0) return null;
+
+        const winnerId = list[0].id;
+        const totalVotes = list.reduce((a, b) => a + b.votes, 0);
+        const Icon = iconMap[category.icon] || Sparkles;
+
+        return (
+          <section key={category.id} className="space-y-6 mb-8">
+            {/* ================= HEADER ================= */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <Icon className="w-5 h-5 text-yellow-500" />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {category.name}
+                </h2>
+              </div>
+
+              <span className="text-sm text-gray-600 bg-white/40 backdrop-blur px-3 py-1 rounded-full border border-white/50">
+                Total votes: {totalVotes}
+              </span>
+            </div>
+
+            {/* ================= GRID ================= */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {list.map((c) => {
+                const isWinner = c.id === winnerId;
+                const imageSrc = new URL(
+                  `../img/kandidat/${c.photo}.jpg`,
+                  import.meta.url,
+                ).href;
+                const percentage = totalVotes
+                  ? Math.round((c.votes / totalVotes) * 100)
+                  : 0;
+
+                return (
+                  <GlassCard
+                    key={c.id}
+                    className={`
+                    relative p-6 text-center space-y-4
+                    transition-all duration-300
+                    hover:-translate-y-1 hover:shadow-2xl
+                    ${isWinner ? "ring-2 ring-yellow-400 scale-105" : ""}
+                  `}
+                  >
+                    {/* ================= WINNER BADGE ================= */}
+                    {isWinner && (
+                      <div className="absolute -top-3 -right-3 bg-yellow-400 text-white rounded-full p-2 shadow-lg">
+                        <Crown className="w-4 h-4" />
+                      </div>
+                    )}
+
+                    {/* ================= PHOTO ================= */}
+
+                    <ImageWithFallback
+                      src={imageSrc}
+                      alt={c.name}
+                      className={`
+                      w-24 h-24 rounded-full mx-auto object-cover border-4
+                      ${isWinner ? "border-yellow-400" : "border-white/50"}
+                    `}
+                    />
+
+                    {/* ================= NAME ================= */}
+                    <div>
+                      <p className="font-semibold text-gray-900">{c.name}</p>
+                      <p className="text-xs text-gray-600">{c.class}</p>
+                    </div>
+
+                    {/* ================= VOTES ================= */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">
+                        {c.votes} votes • {percentage}%
+                      </p>
+
+                      {/* Progress bar */}
+                      <div className="w-full h-2 bg-white/40 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-yellow-400 to-yellow-500 transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  </GlassCard>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+      <p className="text-center text-sm text-gray-500">
+        © 2026 Ignos Studio. All rights reserved.
+      </p>
     </div>
   );
 }
