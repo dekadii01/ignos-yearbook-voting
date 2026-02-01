@@ -146,34 +146,80 @@ export function SummaryPage() {
 
   /* ================= LOAD SUMMARY ================= */
 
+  // useEffect(() => {
+  //   if (!isOpen) return;
+
+  //   const load = async () => {
+  //     setLoading(true);
+
+  //     const { data: categoriesData } = await supabase
+  //       .from("categories")
+  //       .select("*");
+
+  //     const { data: votesData } = await supabase
+  //       .from("votes")
+  //       .select("candidate_id");
+
+  //     const { data: candidatesData } = await supabase
+  //       .from("candidates")
+  //       .select("*");
+
+  //     if (!categoriesData || !votesData || !candidatesData) return;
+
+  //     const voteCount: Record<string, number> = {};
+  //     votesData.forEach((v) => {
+  //       voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
+  //     });
+
+  //     const grouped: Record<string, Candidate[]> = {};
+
+  //     categoriesData.forEach((cat) => {
+  //       grouped[cat.id] = candidatesData
+  //         .filter((c) => c.category_id === cat.id)
+  //         .map((c) => ({
+  //           ...c,
+  //           votes: voteCount[c.id] || 0,
+  //         }))
+  //         .sort((a, b) => b.votes - a.votes);
+  //     });
+
+  //     setCategories(categoriesData);
+  //     setCandidatesByCategory(grouped);
+  //     setLoading(false);
+  //   };
+
+  //   load();
+  // }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
 
     const load = async () => {
       setLoading(true);
 
-      const { data: categoriesData } = await supabase
-        .from("categories")
-        .select("*");
+      const [categoriesRes, votesRes, candidatesRes] = await Promise.all([
+        supabase.from("categories").select("id, name, icon"),
+        supabase.from("votes").select("candidate_id"),
+        supabase
+          .from("candidates")
+          .select("id, name, class, photo, category_id"),
+      ]);
 
-      const { data: votesData } = await supabase
-        .from("votes")
-        .select("candidate_id");
-
-      const { data: candidatesData } = await supabase
-        .from("candidates")
-        .select("*");
+      const categoriesData = categoriesRes.data;
+      const votesData = votesRes.data;
+      const candidatesData = candidatesRes.data;
 
       if (!categoriesData || !votesData || !candidatesData) return;
 
       const voteCount: Record<string, number> = {};
-      votesData.forEach((v) => {
+
+      for (const v of votesData) {
         voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
-      });
+      }
 
       const grouped: Record<string, Candidate[]> = {};
 
-      categoriesData.forEach((cat) => {
+      for (const cat of categoriesData) {
         grouped[cat.id] = candidatesData
           .filter((c) => c.category_id === cat.id)
           .map((c) => ({
@@ -181,7 +227,7 @@ export function SummaryPage() {
             votes: voteCount[c.id] || 0,
           }))
           .sort((a, b) => b.votes - a.votes);
-      });
+      }
 
       setCategories(categoriesData);
       setCandidatesByCategory(grouped);

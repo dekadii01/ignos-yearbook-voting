@@ -55,35 +55,81 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   /* ================= FETCH ALL DATA ================= */
 
+  // useEffect(() => {
+  //   const loadData = async () => {
+  //     const { data: cat } = await supabase.from("categories").select("*");
+  //     const { data: cand } = await supabase.from("candidates").select("*");
+  //     const { data: vote } = await supabase.from("votes").select("*");
+
+  //     const { count } = await supabase
+  //       .from("users")
+  //       .select("*", { count: "exact", head: true })
+  //       .eq("role", "student");
+
+  //     const { data: setting } = await supabase
+  //       .from("settings")
+  //       .select("*")
+  //       .single();
+
+  //     if (setting) {
+  //       setSettingId(setting.id);
+  //       setSummaryDate(
+  //         new Date(setting.summary_open_at).toISOString().slice(0, 16),
+  //       );
+  //     }
+
+  //     setCategories(cat || []);
+  //     setCandidates(cand || []);
+  //     setVotes(vote || []);
+  //     setTotalStudents(count || 0);
+
+  //     if (cat?.length) setSelectedCategory(cat[0].id);
+  //   };
+
+  //   loadData();
+  // }, []);
+
   useEffect(() => {
     const loadData = async () => {
-      const { data: cat } = await supabase.from("categories").select("*");
-      const { data: cand } = await supabase.from("candidates").select("*");
-      const { data: vote } = await supabase.from("votes").select("*");
+      const [categoryRes, voteRes, userCountRes, settingRes] =
+        await Promise.all([
+          /* categories + candidates (JOIN) */
+          supabase.from("categories").select(`
+          *,
+          candidates (*)
+        `),
 
-      const { count } = await supabase
-        .from("users")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "student");
+          /* votes (ambil kolom penting saja) */
+          supabase.from("votes").select("id,candidate_id,category_id"),
 
-      const { data: setting } = await supabase
-        .from("settings")
-        .select("*")
-        .single();
+          /* count students */
+          supabase
+            .from("users")
+            .select("*", { count: "exact", head: true })
+            .eq("role", "student"),
 
-      if (setting) {
-        setSettingId(setting.id);
+          /* setting */
+          supabase.from("settings").select("*").single(),
+        ]);
+
+      const cat = categoryRes.data || [];
+
+      /* flatten candidates dari join */
+      const cand = cat.flatMap((c: any) => c.candidates || []);
+
+      setCategories(cat);
+      setCandidates(cand);
+      setVotes(voteRes.data || []);
+      setTotalStudents(userCountRes.count || 0);
+
+      if (cat.length) setSelectedCategory(cat[0].id);
+
+      if (settingRes.data) {
+        setSettingId(settingRes.data.id);
         setSummaryDate(
-          new Date(setting.summary_open_at).toISOString().slice(0, 16),
+          new Date(settingRes.data.summary_open_at).toISOString().slice(0, 16),
         );
       }
-
-      setCategories(cat || []);
-      setCandidates(cand || []);
-      setVotes(vote || []);
-      setTotalStudents(count || 0);
-
-      if (cat?.length) setSelectedCategory(cat[0].id);
     };
 
     loadData();

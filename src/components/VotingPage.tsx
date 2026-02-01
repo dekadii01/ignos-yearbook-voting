@@ -55,47 +55,96 @@ export function VotingPage() {
   );
 
   /* ================= FETCH DATA ================= */
+  // useEffect(() => {
+  //   const alreadyVoted = async () => {
+  //     const userStr = localStorage.getItem("yearbook-user");
+  //     const user = userStr ? JSON.parse(userStr) : null;
+
+  //     if (!user || !categoryId) return;
+  //     const userId = user.id;
+  //     const { data: existing } = await supabase
+  //       .from("votes")
+  //       .select("id")
+  //       .eq("user_id", userId)
+  //       .eq("category_id", categoryId)
+  //       .maybeSingle();
+
+  //     if (existing) {
+  //       navigate(`/already-voted/${categoryId}`);
+  //     }
+  //   };
+
+  //   const loadData = async () => {
+  //     if (!categoryId) return;
+
+  //     const { data: cat } = await supabase
+  //       .from("categories")
+  //       .select("*")
+  //       .eq("id", categoryId)
+  //       .single();
+
+  //     setCategory(cat);
+
+  //     const { data: cand } = await supabase
+  //       .from("candidates")
+  //       .select("*")
+  //       .eq("category_id", categoryId);
+
+  //     setCandidates(cand || []);
+  //   };
+
+  //   alreadyVoted();
+  //   loadData();
+  // }, [categoryId]);
+
   useEffect(() => {
-    const alreadyVoted = async () => {
+    const loadAll = async () => {
+      if (!categoryId) return;
+
       const userStr = localStorage.getItem("yearbook-user");
       const user = userStr ? JSON.parse(userStr) : null;
+      if (!user) return;
 
-      if (!user || !categoryId) return;
       const userId = user.id;
-      const { data: existing } = await supabase
-        .from("votes")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("category_id", categoryId)
-        .maybeSingle();
 
-      if (existing) {
+      /* PARALLEL REQUEST */
+      const [voteRes, categoryRes] = await Promise.all([
+        // cek sudah vote
+        supabase
+          .from("votes")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("category_id", categoryId)
+          .maybeSingle(),
+
+        // ambil category + candidates sekaligus
+        supabase
+          .from("categories")
+          .select(
+            `
+          *,
+          candidates (*)
+        `,
+          )
+          .eq("id", categoryId)
+          .single(),
+      ]);
+
+      /* redirect kalau sudah vote */
+      if (voteRes.data) {
         navigate(`/already-voted/${categoryId}`);
+        return;
+      }
+
+      /* set data */
+      if (categoryRes.data) {
+        setCategory(categoryRes.data);
+        setCandidates(categoryRes.data.candidates || []);
       }
     };
 
-    const loadData = async () => {
-      if (!categoryId) return;
-
-      const { data: cat } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("id", categoryId)
-        .single();
-
-      setCategory(cat);
-
-      const { data: cand } = await supabase
-        .from("candidates")
-        .select("*")
-        .eq("category_id", categoryId);
-
-      setCandidates(cand || []);
-    };
-
-    alreadyVoted();
-    loadData();
-  }, [categoryId]);
+    loadAll();
+  }, [categoryId, navigate]);
 
   /* ================= BACK TO TOP VISIBILITY ================= */
   useEffect(() => {
