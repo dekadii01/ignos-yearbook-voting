@@ -8,6 +8,7 @@ import {
   Palette,
   Smile,
   Crown,
+  ArrowUp,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -59,6 +60,7 @@ const formatTime = (ms: number) => {
 /* ================= COMPONENT ================= */
 
 export function SummaryPage() {
+  const [showTop, setShowTop] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [candidatesByCategory, setCandidatesByCategory] = useState<
     Record<string, Candidate[]>
@@ -70,6 +72,23 @@ export function SummaryPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  /* ================= BACK TO TOP VISIBILITY ================= */
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowTop(window.scrollY > 400);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   /* ================= SERVER TIME ================= */
 
@@ -341,6 +360,13 @@ export function SummaryPage() {
       <p className="text-center text-sm text-gray-500">
         © 2026 Ignos Studio. All rights reserved.
       </p>
+
+      {/* ================= BACK TO TOP BUTTON ================= */}
+      {showTop && (
+        <button onClick={scrollToTop} className="scrolltotop">
+          <ArrowUp size={20} />
+        </button>
+      )}
     </div>
   );
 }
