@@ -9,6 +9,7 @@ import {
   Smile,
   Crown,
   ArrowUp,
+  Award,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -304,11 +305,15 @@ export function SummaryPage() {
   return (
     <div className="min-h-screen max-w-7xl mx-auto space-y-10 p-6 py-10">
       {/* ================= HERO HEADER ================= */}
-      <div className="text-center space-y-2 mb-6">
-        <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">
+      <div className="text-center mb-16">
+        <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-gray-900 text-white rounded-full text-sm">
+          <Award className="w-4 h-4" />
+          <span>Official Results</span>
+        </div>
+        <h1 className="text-5xl font-light text-gray-900 mb-4">
           Voting Results
         </h1>
-        <p className="text-gray-600">Yearbook Voting SMPN 2 Abiansemal</p>
+        <p className="text-gray-500">Yearbook Voting SMPN 2 Abiansemal</p>
       </div>
 
       {/* ================= CATEGORIES ================= */}
@@ -323,17 +328,20 @@ export function SummaryPage() {
         return (
           <section key={category.id} className="space-y-6 mb-8">
             {/* ================= HEADER ================= */}
-            <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center justify-between border-b border-gray-200 pb-4">
               <div className="flex items-center gap-3">
-                <Icon className="w-5 h-5 text-yellow-500" />
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {category.name}
-                </h2>
+                <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center">
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-light text-gray-900">
+                    {category.name}
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    {totalVotes} total votes
+                  </p>
+                </div>
               </div>
-
-              <span className="text-sm text-gray-600 bg-white/40 backdrop-blur px-3 py-1 rounded-full border border-white/50">
-                Total votes: {totalVotes}
-              </span>
             </div>
 
             {/* ================= GRID ================= */}
