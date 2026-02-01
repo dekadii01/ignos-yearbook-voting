@@ -305,7 +305,7 @@ export function SummaryPage() {
   return (
     <div className="min-h-screen max-w-7xl mx-auto space-y-10 p-6 py-10">
       {/* ================= HERO HEADER ================= */}
-      <div className="text-center mb-16">
+      <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-gray-900 text-white rounded-full text-sm">
           <Award className="w-4 h-4" />
           <span>Official Results</span>
@@ -326,7 +326,7 @@ export function SummaryPage() {
         const Icon = iconMap[category.icon] || Sparkles;
 
         return (
-          <section key={category.id} className="space-y-6 mb-8">
+          <section key={category.id} className="space-y-6 mb-8 mt-4">
             {/* ================= HEADER ================= */}
             <div className="flex items-center justify-between border-b border-gray-200 pb-4">
               <div className="flex items-center gap-3">
