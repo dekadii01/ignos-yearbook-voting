@@ -8,6 +8,7 @@ import {
   Trophy,
   Palette,
   Smile,
+  ArrowUp,
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
@@ -45,6 +46,7 @@ const iconMap: { [key: string]: any } = {
 export function VotingPage() {
   const navigate = useNavigate();
   const { categoryId } = useParams();
+  const [showTop, setShowTop] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [category, setCategory] = useState<Category | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -94,6 +96,23 @@ export function VotingPage() {
     alreadyVoted();
     loadData();
   }, [categoryId]);
+
+  /* ================= BACK TO TOP VISIBILITY ================= */
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowTop(window.scrollY > 400); // muncul setelah scroll 400px
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   /* ================= SUBMIT VOTE ================= */
   const handleVoteClick = () => {
@@ -317,6 +336,13 @@ export function VotingPage() {
             </div>
           </GlassCard>
         </div>
+      )}
+
+      {/* ================= BACK TO TOP BUTTON ================= */}
+      {showTop && (
+        <button onClick={scrollToTop} className="scrolltotop">
+          <ArrowUp size={20} />
+        </button>
       )}
     </div>
   );
