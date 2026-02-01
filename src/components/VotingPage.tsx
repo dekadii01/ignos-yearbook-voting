@@ -45,7 +45,7 @@ const iconMap: { [key: string]: any } = {
 export function VotingPage() {
   const navigate = useNavigate();
   const { categoryId } = useParams();
-
+  const [showConfirm, setShowConfirm] = useState(false);
   const [category, setCategory] = useState<Category | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<string | null>(
@@ -96,7 +96,12 @@ export function VotingPage() {
   }, [categoryId]);
 
   /* ================= SUBMIT VOTE ================= */
-  const handleVoteClick = async () => {
+  const handleVoteClick = () => {
+    if (!selectedCandidate) return;
+    setShowConfirm(true);
+  };
+
+  const submitVote = async () => {
     if (!selectedCandidate || !categoryId) return;
 
     const userStr = localStorage.getItem("yearbook-user");
@@ -106,7 +111,6 @@ export function VotingPage() {
 
     const userId = user.id;
 
-    /* ================= CHECK ALREADY VOTED ================= */
     const { data: existing } = await supabase
       .from("votes")
       .select("id")
@@ -114,14 +118,12 @@ export function VotingPage() {
       .eq("category_id", categoryId)
       .maybeSingle();
 
-    console.log(existing);
-
     if (existing) {
       navigate(`/already-voted/${categoryId}`);
       return;
     }
 
-    /* ================= INSERT ================= */
+    /* INSERT */
     await supabase.from("votes").insert({
       user_id: userId,
       category_id: categoryId,
@@ -277,6 +279,45 @@ export function VotingPage() {
       <p className="text-center text-sm text-gray-500 mt-6">
         © 2026 Ignos Studio. All rights reserved.
       </p>
+
+      {/* ================= CONFIRM MODAL ================= */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <GlassCard className="p-8 max-w-sm w-full text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              Konfirmasi Vote
+            </h3>
+
+            <p className="text-gray-600 text-sm mb-3">
+              Yakin ingin memilih{" "}
+              <span className="font-medium text-gray-900">
+                {candidates.find((c) => c.id === selectedCandidate)?.name}
+              </span>
+              ?
+              <br />
+              <span className="text-xs text-red-500">
+                Vote tidak bisa diubah setelah dikirim.
+              </span>
+            </p>
+
+            <div className="flex gap-3 justify-center">
+              <GlassButton
+                variant="secondary"
+                onClick={() => setShowConfirm(false)}
+              >
+                Batal
+              </GlassButton>
+
+              <GlassButton
+                onClick={submitVote}
+                className="bg-gray-900 text-white hover:bg-gray-800"
+              >
+                Ya, Vote
+              </GlassButton>
+            </div>
+          </GlassCard>
+        </div>
+      )}
     </div>
   );
 }

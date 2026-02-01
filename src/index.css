@@ -742,6 +742,10 @@
     width: 100%;
   }
 
+  .max-w-sm{
+    max-width: var(--container-md);
+  }
+
   .max-w-2xl {
     max-width: var(--container-2xl);
   }
@@ -870,6 +874,7 @@
   .overflow-hidden {
     overflow: hidden;
   }
+
 
   .rounded-2xl {
     border-radius: var(--radius-2xl);
